@@ -27,8 +27,8 @@ void setup() {
   pinMode(MOTOR_Y_ENABLE_PIN, OUTPUT);
   digitalWrite(MOTOR_Y_ENABLE_PIN, LOW);
 
-  stepper1.setMaxSpeed(1000); // Set maximum speed value for the stepper
-  stepper2.setMaxSpeed(1000);
+  stepper1.setMaxSpeed(1200); // Set maximum speed value for the stepper
+  stepper2.setMaxSpeed(1200);
 
   // Adding the 2 steppers to the steppersControl instance for multi stepper control
   steppersControl.addStepper(stepper1);
@@ -37,8 +37,8 @@ void setup() {
 
 void loop() {
   // Store the target positions in the "gotoposition" array
-  gotoposition[0] = 6250;
-  gotoposition[1] = 18750;
+  gotoposition[0] = 62500;
+  gotoposition[1] = 187500;
 
   steppersControl.moveTo(gotoposition); // Calculates the required speed for all motors
   steppersControl.runSpeedToPosition(); // Blocks until all steppers are in position
