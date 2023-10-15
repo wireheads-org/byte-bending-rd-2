@@ -40,11 +40,11 @@ const int MOTOR_H_RPM = 400;          // maximum rated RPM of motor
 const int SOLENOID_ACTUATION_TIME = 1000; // set the time for the cap to fix on the bottle (in ms)
 
 // Function to calculate the total number of steps required
-long calculateSteps(float stepAngle, float distancePerRev, float totalDistance)
+long calculateSteps(float stepAngle, float distancePerRev, float totalDistance) 
 {
-  float stepsPerRev = 360.0 / stepAngle;
-  long total_steps = (int)(totalDistance / distancePerRev * stepsPerRev);
-  return total_steps;
+    float stepsPerRev = 360.0 / stepAngle;
+    long total_steps = (long)(totalDistance / distancePerRev * stepsPerRev);
+    return total_steps;
 }
 
 // Function to calculate the maximum speed for the motors without step loss (assuming the rated values given are correct)
@@ -61,7 +61,7 @@ AccelStepper stepper2(1, MOTOR_H_STEP_PIN, MOTOR_H_DIRECTION_PIN);
 MultiStepper steppersControl; // Create an instance of MultiStepper
 long gotoposition[2];         // An array to store the target positions for each stepper motor
 
-int main()
+void setup()
 {
   //start the program and let the user know
   debugspeed(9600);
@@ -116,4 +116,9 @@ int main()
   delay(500);
   debugln("Bottle Cap Placing Test Completed Successfully");
   debugln("Code by Wireheads | T-Works Byte Bending Championship - Round 2");
+}
+
+void loop () 
+{
+  
 }
