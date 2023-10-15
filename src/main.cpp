@@ -17,39 +17,44 @@
 #endif
 
 // Microcontroller Pin Definitions
-const int MOTOR_C_STEP_PIN = A6;
-const int MOTOR_C_DIRECTION_PIN = A7;
-const int MOTOR_C_ENABLE_PIN = A2;
-const int MOTOR_H_STEP_PIN = 26;
-const int MOTOR_H_DIRECTION_PIN = 28;
-const int MOTOR_H_ENABLE_PIN = 24;
-const int SOLENOID_PIN = A9;
+struct MotorConfig 
+{
+    const int stepPin; // step pin of the motor driver
+    const int directionPin; //  direction pin of motor driver
+    const int enablePin; // enable pin of motor driver (optional)
+    const float stepAngle; // step angle of motor (in degrees)
+    const float distPerRev; // distance covered by motor in one revolution (in mm)
+    const int rpm; // maximum rated RPM of motor
+    const int distance; // total distance required to cover (in mm)
+};
 
-// Stepper Motor Definitions
-const int MOTOR_C_DISTANCE = 750;     // total distance required to cover (in mm)
-const float MOTOR_C_STEP_ANGLE = 1.8;   // step angle of motor (in degrees)
-const float MOTOR_C_DIST_PER_REV = 0.8; // distance covered by motor in one revolution (in mm)
-const int MOTOR_C_RPM = 400;          // maximum rated RPM of motor
+constexpr MotorConfig MOTOR_C = 
+{
+    A6, A7, A2, 1.8, 0.8, 400, 750
+};
 
-const int MOTOR_H_DISTANCE = 250;     // total distance required to cover (in mm)
-const float MOTOR_H_STEP_ANGLE = 1.8;   // step angle of motor (in degrees)
-const float MOTOR_H_DIST_PER_REV = 0.8; // distance covered by motor in one revolution (in mm)
-const int MOTOR_H_RPM = 400;          // maximum rated RPM of motor
+constexpr MotorConfig MOTOR_H = 
+{
+    26, 28, 24, 1.8, 0.8, 400, 250
+};
+
 
 // Solenoid Definitions
-const int SOLENOID_ACTUATION_TIME = 1000; // set the time for the cap to fix on the bottle (in ms)
+constexpr int SOLENOID_PIN = A9;
+constexpr int SOLENOID_ACTUATION_TIME = 1000; // set the time for the cap to fix on the bottle (in ms)
 
 // Function to calculate the total number of steps required
-inline long calculateSteps(float stepAngle, float distancePerRev, float totalDistance) 
+inline long calculateSteps(const MotorConfig& config) 
 {
-    return static_cast<long>(totalDistance / distancePerRev * (360.0 / stepAngle));
+    return static_cast<long>(config.distance / config.distPerRev * (360.0 / config.stepAngle));
 }
 
 // Function to calculate the maximum speed for the motors without step loss (assuming the rated values given are correct)
-inline float calculateMaxSpeed(float rpm, float stepAngle)
+inline float calculateMaxSpeed(const MotorConfig& config) 
 {
-    return (rpm * (360.0 / stepAngle)) / 60.0;
+    return (config.rpm * (360.0 / config.stepAngle)) / 60.0;
 }
+
 
 // Function to enable motor drivers
 void setupMotorPins(int enablePin)
@@ -58,11 +63,15 @@ void setupMotorPins(int enablePin)
     digitalWrite(enablePin, LOW);
 }
 
-// Using the AccelStepper library for both motors
-AccelStepper stepper1(1, MOTOR_C_STEP_PIN, MOTOR_C_DIRECTION_PIN); // (driver_type, step_pin, direction_pin)
-AccelStepper stepper2(1, MOTOR_H_STEP_PIN, MOTOR_H_DIRECTION_PIN);
-MultiStepper steppersControl; // Create an instance of MultiStepper
-long positions[2];         // An array to store the target positions for each stepper motor
+// Function to operate the solenoid (activation & deactivation)
+void operateSolenoid() 
+{
+  pinMode(SOLENOID_PIN, OUTPUT);
+  digitalWrite(SOLENOID_PIN, HIGH);
+  delay(SOLENOID_ACTUATION_TIME + 40); // set the delay for cap to fit on bottle with 40ms of addl. levy
+  digitalWrite(SOLENOID_PIN, LOW);
+  delay(SOLENOID_ACTUATION_TIME + 40); // set the delay for movement of head motor with 40ms of addl. levy
+}
 
 void setup()
 {
@@ -71,22 +80,27 @@ void setup()
   debug("The Bottle Cap Placing Test is Starting Now");
   
   // Enabling the drivers
-  setupMotorPins(MOTOR_H_ENABLE_PIN);
-  setupMotorPins(MOTOR_C_ENABLE_PIN);
+  setupMotorPins(MOTOR_H.enablePin);
+  setupMotorPins(MOTOR_C.enablePin);
+
+  // Using the AccelStepper library for both motors
+  AccelStepper stepper1(1, MOTOR_C.stepPin, MOTOR_C.directionPin); // def : (driver_type, step, dir)
+  AccelStepper stepper2(1, MOTOR_H.stepPin, MOTOR_H.directionPin);
 
   // Set maximum speed value for the stepper
-  stepper1.setMaxSpeed(calculateMaxSpeed(MOTOR_C_RPM, MOTOR_C_STEP_ANGLE));
-  stepper2.setMaxSpeed(calculateMaxSpeed(MOTOR_H_RPM, MOTOR_H_STEP_ANGLE));
+  stepper1.setMaxSpeed(calculateMaxSpeed(MOTOR_C));
+  stepper2.setMaxSpeed(calculateMaxSpeed(MOTOR_H));
 
   // Adding the 2 steppers to the steppersControl instance for multi stepper control
+  MultiStepper steppersControl; // Create an instance of MultiStepper
   steppersControl.addStepper(stepper1);
   steppersControl.addStepper(stepper2);
 
   // Calculate the required steps for each motor and save them in the array named positions
   long positions[] = 
   {
-      calculateSteps(MOTOR_C_STEP_ANGLE, MOTOR_C_DIST_PER_REV, MOTOR_C_DISTANCE),
-      calculateSteps(MOTOR_H_STEP_ANGLE, MOTOR_H_DIST_PER_REV, MOTOR_H_DISTANCE)
+      calculateSteps(MOTOR_C),
+      calculateSteps(MOTOR_H)
   };
 
   //Print all calculated values for user reference
@@ -101,12 +115,7 @@ void setup()
   steppersControl.moveTo(positions);
   steppersControl.runSpeedToPosition();
 
-  // solenoid activation and deactivation
-  pinMode(SOLENOID_PIN, OUTPUT);
-  digitalWrite(SOLENOID_PIN, HIGH);
-  delay(SOLENOID_ACTUATION_TIME + 40); // set the delay for cap to fit on bottle with 40ms of addl. levy
-  digitalWrite(SOLENOID_PIN, LOW);
-  delay(SOLENOID_ACTUATION_TIME + 40); // set the delay for movement of head motor with 40ms of addl. levy
+  operateSolenoid();
 
   // send the head motor with solenoid back to original position
   positions[1] = 0;
