@@ -40,10 +40,10 @@ const int MOTOR_H_RPM = 400;          // maximum rated RPM of motor
 const int SOLENOID_ACTUATION_TIME = 1000; // set the time for the cap to fix on the bottle (in ms)
 
 // Function to calculate the total number of steps required
-int calculateSteps(float stepAngle, float distancePerRev, float totalDistance)
+long calculateSteps(float stepAngle, float distancePerRev, float totalDistance)
 {
   float stepsPerRev = 360.0 / stepAngle;
-  int total_steps = (int)(totalDistance / distancePerRev * stepsPerRev);
+  long total_steps = (int)(totalDistance / distancePerRev * stepsPerRev);
   return total_steps;
 }
 
@@ -83,8 +83,8 @@ int main()
   steppersControl.addStepper(stepper2);
 
   // Calculate the required steps for each motor and save them in the array named gotoposition
-  int motor_c_total_steps = calculateSteps(MOTOR_C_STEP_ANGLE, MOTOR_C_DIST_PER_REV, MOTOR_C_DISTANCE);
-  int motor_h_total_steps = calculateSteps(MOTOR_H_STEP_ANGLE, MOTOR_H_DIST_PER_REV, MOTOR_H_DISTANCE);
+  long motor_c_total_steps = calculateSteps(MOTOR_C_STEP_ANGLE, MOTOR_C_DIST_PER_REV, MOTOR_C_DISTANCE);
+  long motor_h_total_steps = calculateSteps(MOTOR_H_STEP_ANGLE, MOTOR_H_DIST_PER_REV, MOTOR_H_DISTANCE);
   gotoposition[0] = motor_c_total_steps;
   gotoposition[1] = motor_h_total_steps;
 
