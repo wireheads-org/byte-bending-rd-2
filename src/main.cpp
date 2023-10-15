@@ -40,64 +40,65 @@ const int MOTOR_H_RPM = 400;          // maximum rated RPM of motor
 const int SOLENOID_ACTUATION_TIME = 1000; // set the time for the cap to fix on the bottle (in ms)
 
 // Function to calculate the total number of steps required
-long calculateSteps(float stepAngle, float distancePerRev, float totalDistance) 
+inline long calculateSteps(float stepAngle, float distancePerRev, float totalDistance) 
 {
-    float stepsPerRev = 360.0 / stepAngle;
-    long total_steps = (long)(totalDistance / distancePerRev * stepsPerRev);
-    return total_steps;
+    return static_cast<long>(totalDistance / distancePerRev * (360.0 / stepAngle));
 }
 
 // Function to calculate the maximum speed for the motors without step loss (assuming the rated values given are correct)
-float calculateMaxSpeed(float rpm, float stepAngle)
+inline float calculateMaxSpeed(float rpm, float stepAngle)
 {
-  float stepsPerRevolution = 360.0 / stepAngle;
-  int maxspeed = (rpm * stepsPerRevolution) / 60.0;
-  return maxspeed;
+    return (rpm * (360.0 / stepAngle)) / 60.0;
+}
+
+// Function to enable motor drivers
+void setupMotorPins(int enablePin)
+{
+    pinMode(enablePin, OUTPUT);
+    digitalWrite(enablePin, LOW);
 }
 
 // Using the AccelStepper library for both motors
 AccelStepper stepper1(1, MOTOR_C_STEP_PIN, MOTOR_C_DIRECTION_PIN); // (driver_type, step_pin, direction_pin)
 AccelStepper stepper2(1, MOTOR_H_STEP_PIN, MOTOR_H_DIRECTION_PIN);
 MultiStepper steppersControl; // Create an instance of MultiStepper
-long gotoposition[2];         // An array to store the target positions for each stepper motor
+long positions[2];         // An array to store the target positions for each stepper motor
 
 void setup()
 {
-  //start the program and let the user know
+  //Serial print if debug flag is set to 1
   debugspeed(9600);
   debug("The Bottle Cap Placing Test is Starting Now");
-  // enabling the motors & their drivers
-  pinMode(MOTOR_H_ENABLE_PIN, OUTPUT);
-  digitalWrite(MOTOR_H_ENABLE_PIN, LOW);
-  pinMode(MOTOR_C_ENABLE_PIN, OUTPUT);
-  digitalWrite(MOTOR_C_ENABLE_PIN, LOW);
+  
+  // Enabling the drivers
+  setupMotorPins(MOTOR_H_ENABLE_PIN);
+  setupMotorPins(MOTOR_C_ENABLE_PIN);
 
   // Set maximum speed value for the stepper
-  int motor_c_max_speed = calculateMaxSpeed(MOTOR_C_RPM, MOTOR_C_STEP_ANGLE);
-  int motor_h_max_speed = calculateMaxSpeed(MOTOR_H_RPM, MOTOR_H_STEP_ANGLE);
-  stepper1.setMaxSpeed(motor_c_max_speed);
-  stepper2.setMaxSpeed(motor_h_max_speed);
+  stepper1.setMaxSpeed(calculateMaxSpeed(MOTOR_C_RPM, MOTOR_C_STEP_ANGLE));
+  stepper2.setMaxSpeed(calculateMaxSpeed(MOTOR_H_RPM, MOTOR_H_STEP_ANGLE));
 
   // Adding the 2 steppers to the steppersControl instance for multi stepper control
   steppersControl.addStepper(stepper1);
   steppersControl.addStepper(stepper2);
 
-  // Calculate the required steps for each motor and save them in the array named gotoposition
-  long motor_c_total_steps = calculateSteps(MOTOR_C_STEP_ANGLE, MOTOR_C_DIST_PER_REV, MOTOR_C_DISTANCE);
-  long motor_h_total_steps = calculateSteps(MOTOR_H_STEP_ANGLE, MOTOR_H_DIST_PER_REV, MOTOR_H_DISTANCE);
-  gotoposition[0] = motor_c_total_steps;
-  gotoposition[1] = motor_h_total_steps;
+  // Calculate the required steps for each motor and save them in the array named positions
+  long positions[] = 
+  {
+      calculateSteps(MOTOR_C_STEP_ANGLE, MOTOR_C_DIST_PER_REV, MOTOR_C_DISTANCE),
+      calculateSteps(MOTOR_H_STEP_ANGLE, MOTOR_H_DIST_PER_REV, MOTOR_H_DISTANCE)
+  };
 
   //Print all calculated values for user reference
-  debug("Speed of Each Motor is (Hz): ");
-  debug(motor_c_max_speed);
-  debug(motor_h_max_speed);
-  debug("Total Steps of Each Motor is (Steps): ");
-  debug(motor_c_total_steps);
-  debug(motor_h_total_steps);
+  debugln("Speed of Each Motor is (Hz): ");
+  debugln(stepper1.maxSpeed());
+  debugln(stepper2.maxSpeed());
+  debugln("Total Steps of Each Motor is (Steps): ");
+  debugln(positions[0]);
+  debugln(positions[1]);
 
   // Sets the Stepper Motors to go to set position and blocks use until both steppers are engaged into position
-  steppersControl.moveTo(gotoposition);
+  steppersControl.moveTo(positions);
   steppersControl.runSpeedToPosition();
 
   // solenoid activation and deactivation
@@ -108,14 +109,14 @@ void setup()
   delay(SOLENOID_ACTUATION_TIME + 40); // set the delay for movement of head motor with 40ms of addl. levy
 
   // send the head motor with solenoid back to original position
-  gotoposition[1] = 0;
-  steppersControl.moveTo(gotoposition);
+  positions[1] = 0;
+  steppersControl.moveTo(positions);
   steppersControl.runSpeedToPosition();
 
   // let the user know that the program has finished the operation
   delay(500);
   debugln("Bottle Cap Placing Test Completed Successfully");
-  debugln("Code by Wireheads | T-Works Byte Bending Championship - Round 2");
+  debugln("Code by Wireheads | T-Works Byte Bending Championship 2023 - Round 2");
 }
 
 void loop () 
