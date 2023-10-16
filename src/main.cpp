@@ -4,7 +4,7 @@
 #include <MultiStepper.h>
 
 //To enable DEBUG Mode set Flag to 1 (Debug Mode prints Serial data)
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG == 1
 #define debugspeed(x) Serial.begin(x)
@@ -40,8 +40,8 @@ constexpr MotorConfig MOTOR_H =
 
 
 // Solenoid Definitions
-constexpr int SOLENOID_PIN = A9;
-constexpr int SOLENOID_ACTUATION_TIME = 1000; // set the time for the cap to fix on the bottle (in ms)
+constexpr int SOLENOID_PIN = 13;
+constexpr int SOLENOID_ACTUATION_TIME = 2000; // set the time for the cap to fix on the bottle (in ms)
 
 // Function to calculate the total number of steps required
 inline long calculateSteps(const MotorConfig& config) 
@@ -77,7 +77,7 @@ void setup()
 {
   //Serial print if debug flag is set to 1
   debugspeed(9600);
-  debug("The Bottle Cap Placing Test is Starting Now");
+  debugln("The Bottle Cap Placing Test is Starting Now");
   
   // Enabling the drivers
   setupMotorPins(MOTOR_H.enablePin);
